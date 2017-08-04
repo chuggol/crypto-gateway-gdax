@@ -1,51 +1,37 @@
-box: maven:latest
-dev:
-    steps:
-      - xenoterracide/maven:
-          goals: package
-      - script:
-          code: cp $WERCKER_SOURCE_DIR/target/crypto-gateway-gdax.jar /app.jar
-      - internal/docker-push:
-          cmd: "java -Djava.security.egd=file:/dev/./urandom -jar /app.jar"
-          ports: "8080"
-          tag: ${WERCKER_GIT_COMMIT}
-          username: _json_key
-          password: $GCP_KEY_JSON
-          repository: $GCR_TAG
-          registry: $GCR_HOST/v2
-
 build:
-    steps:
-      - xenoterracide/maven:
-          goals: package
-      - script:
-          code: cp $WERCKER_SOURCE_DIR/target/crypto-gateway-gdax.jar /app.jar
-      - internal/docker-push:
-          cmd: "java -Djava.security.egd=file:/dev/./urandom -jar /app.jar"
-          ports: "8080"
-          tag: ${WERCKER_GIT_COMMIT}
-          username: _json_key
-          password: $GCP_KEY_JSON
-          repository: $GCR_TAG
-          registry: $GCR_HOST/v2
+  box: maven:latest
+  steps:
+    - xenoterracide/maven:
+        goals: package
+    - script:
+        code: cp $WERCKER_SOURCE_DIR/target/crypto-gateway-gdax.jar /app.jar
+    - internal/docker-push:
+        cmd: "java -Djava.security.egd=file:/dev/./urandom -jar /app.jar"
+        ports: "8080"
+        tag: ${WERCKER_GIT_COMMIT}
+        username: _json_key
+        password: $GCP_KEY_JSON
+        repository: $GCR_TAG
+        registry: $GCR_HOST/v2
 
 deploy:
-    steps:
-      - bash-template
-      - script:
-          name: Prepare Kubernetes files
-          code: |
-            mkdir $WERCKER_OUTPUT_DIR/kubernetes
-            mv kubernetes_*.yml $WERCKER_OUTPUT_DIR/kubernetes
-      - script:
-          code: ls -la $WERCKER_OUTPUT_DIR/kubernetes
-      - script:
-          code: cat $WERCKER_OUTPUT_DIR/kubernetes/kubernetes_deployment.yml
-      - riceo/kubectl:
-          name: deploy to kubernetes
-          server: $KUBERNETES_MASTER
-          gcloud-key-json: $GCP_KEY_JSON
-          gke-cluster-name: $GKE_CLUSTER_NAME
-          gke-cluster-zone: $GKE_CLUSTER_ZONE
-          gke-cluster-project: $GKE_CLUSTER_PROJECT
-          command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
+  box: ubuntu:latest
+  steps:
+    - bash-template
+    - script:
+        name: Prepare Kubernetes files
+        code: |
+          mkdir $WERCKER_OUTPUT_DIR/kubernetes
+          mv kubernetes_*.yml $WERCKER_OUTPUT_DIR/kubernetes
+    - script:
+        code: ls -la $WERCKER_OUTPUT_DIR/kubernetes
+    - script:
+        code: cat $WERCKER_OUTPUT_DIR/kubernetes/kubernetes_deployment.yml
+    - riceo/kubectl:
+        name: deploy to kubernetes
+        server: $KUBERNETES_MASTER
+        gcloud-key-json: $GCP_KEY_JSON
+        gke-cluster-name: $GKE_CLUSTER_NAME
+        gke-cluster-zone: $GKE_CLUSTER_ZONE
+        gke-cluster-project: $GKE_CLUSTER_PROJECT
+        command: apply -f $WERCKER_OUTPUT_DIR/kubernetes/
