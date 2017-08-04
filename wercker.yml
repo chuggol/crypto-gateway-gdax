@@ -30,7 +30,7 @@ build:
           registry: $GCR_HOST/v2
 
 deploy:
-    upgrade:
+    steps:
       - bash-template
       - script:
           code: ls -la $WERCKER_SOURCE_DIR/kubernetes
