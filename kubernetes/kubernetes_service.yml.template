@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crypto-gateway-gdax
+  labels:
+    app: crypto-gateway-gdax
+    commit: ${WERCKER_GIT_COMMIT}
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: crypto-gateway-gdax
+    commit: ${WERCKER_GIT_COMMIT}
+  type: LoadBalancer
