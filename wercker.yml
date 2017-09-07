@@ -6,7 +6,7 @@ build:
     - script:
         code: cp $WERCKER_SOURCE_DIR/target/crypto-gateway-gdax.jar /app.jar
     - internal/docker-push:
-        cmd: "java -Djava.security.egd=file:/dev/./urandom -jar /app.jar"
+        cmd: "java -XX:+PrintFlagsFinal -Djava.security.egd=file:/dev/./urandom -jar /app.jar"
         ports: "8080"
         tag: ${WERCKER_GIT_COMMIT}
         username: _json_key
