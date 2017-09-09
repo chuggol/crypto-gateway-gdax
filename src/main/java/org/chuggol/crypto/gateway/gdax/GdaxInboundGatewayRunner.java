@@ -1,5 +1,6 @@
 package org.chuggol.crypto.gateway.gdax;
 
+import com.google.api.core.ApiFuture;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -46,7 +47,13 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
                         ByteString tradeData = ByteString.copyFromUtf8(tradeJson);
                         PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(tradeData).build();
                         LOG.info("Incoming gdaxTrade: {}", tradeJson);
-                        publisher.publish(pubsubMessage);
+                        ApiFuture<String> future = publisher.publish(pubsubMessage);
+                        try {
+                            LOG.info("Published with id: {}", future.get());
+                        } catch (Exception ex) {
+                            LOG.error("Got exception: ", ex);
+                        }
+
 
                     }
                 }, throwable -> {
@@ -64,7 +71,8 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
         aTrade.setId(gdaxTrade.getId());
         aTrade.setPrice(gdaxTrade.getPrice());
         aTrade.setQuantity(gdaxTrade.getTradableAmount());
-        aTrade.setId(aTrade.getId());
+        aTrade.setId(gdaxTrade.getId());
+        aTrade.setSide(gdaxTrade.getType().name());
         return aTrade;
     }
 
