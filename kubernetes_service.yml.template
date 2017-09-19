@@ -10,6 +10,6 @@ spec:
   - port: 8080
     targetPort: 8080
   selector:
-    app: gdax-health
+    app: crypto-gateway-gdax
     commit: ${WERCKER_GIT_COMMIT}
   type: LoadBalancer
