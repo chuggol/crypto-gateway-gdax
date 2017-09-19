@@ -19,6 +19,6 @@ spec:
       - name: crypto-gateway-gdax
         image: ${GCR_TAG}:${WERCKER_GIT_COMMIT}
         ports:
-        - name: get-ip-server
+        - name: crypto-gateway-gdax
           containerPort: 8080
           protocol: TCP
