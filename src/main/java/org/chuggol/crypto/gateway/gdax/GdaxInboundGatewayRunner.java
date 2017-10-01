@@ -19,9 +19,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.io.IOException;
+import java.util.concurrent.*;
 
 @Service
 public class GdaxInboundGatewayRunner implements ApplicationRunner {
@@ -32,7 +31,17 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
     private Publisher publisher;
 
     @Override
-    public void run(ApplicationArguments applicationArguments) throws Exception {
+    public void run(ApplicationArguments applicationArguments) throws Exception{
+        connectAndStart();
+        initWatchDog();
+    }
+
+    private void initWatchDog() {
+        ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+        service.scheduleAtFixedRate(new WatchDog(), 10, 10, TimeUnit.SECONDS);
+    }
+
+    private void connectAndStart() throws IOException {
         exchange.connect().blockingAwait();
         TopicName topicName = TopicName.create("crypto-175617", "inbound-trades");
         publisher = Publisher.defaultBuilder(topicName).build();
@@ -59,6 +68,11 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
                 }, throwable -> {
                     LOG.error("Error in subscribing trades.", throwable);
                 });
+
+    }
+
+    private boolean isHealthy() {
+        return !tradeSubscription.isDisposed();
     }
 
     private String toJson(Trade trade) {
@@ -85,5 +99,26 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
         exchange.disconnect().blockingAwait();
 
         publisher.shutdown();
+    }
+
+    class WatchDog implements Runnable {
+
+        @Override
+        public void run() {
+            LOG.info("Checking subscription health");
+            if (!isHealthy()) {
+                try {
+                    cleanupBeforeExit();
+                } catch (Exception ex) {
+                    LOG.warn("Caught exception during restart/cleanup", ex);
+                }
+
+                try {
+                    connectAndStart();
+                } catch (Exception ex) {
+                    LOG.warn("Caught exception during start", ex);
+                }
+            }
+        }
     }
 }
