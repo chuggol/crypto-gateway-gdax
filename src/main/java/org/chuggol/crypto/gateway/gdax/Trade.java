@@ -8,8 +8,8 @@ public class Trade {
     private String id;
     private Instant executionTime;
     private String market;
-    private String currencyTraded;
-    private String currencyBase;
+    private String tradedAsset;
+    private String currency;
     private BigDecimal price;
     private BigDecimal quantity;
     private String side;
@@ -38,20 +38,20 @@ public class Trade {
         this.market = market;
     }
 
-    public String getCurrencyTraded() {
-        return currencyTraded;
+    public String getTradedAsset() {
+        return tradedAsset;
     }
 
-    public void setCurrencyTraded(String currencyTraded) {
-        this.currencyTraded = currencyTraded;
+    public void setTradedAsset(String tradedAsset) {
+        this.tradedAsset = tradedAsset;
     }
 
-    public String getCurrencyBase() {
-        return currencyBase;
+    public String getCurrency() {
+        return currency;
     }
 
-    public void setCurrencyBase(String currencyBase) {
-        this.currencyBase = currencyBase;
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     public BigDecimal getPrice() {

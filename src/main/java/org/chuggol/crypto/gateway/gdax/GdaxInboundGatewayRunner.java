@@ -84,12 +84,12 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
         Trade aTrade = new Trade();
         aTrade.setId(gdaxTrade.getId());
         aTrade.setMarket("GDAX");
-        aTrade.setCurrencyTraded(gdaxTrade.getCurrencyPair().counter.toString());
-        aTrade.setCurrencyBase(gdaxTrade.getCurrencyPair().base.toString());
+        aTrade.setCurrency(gdaxTrade.getCurrencyPair().counter.toString());
+        aTrade.setTradedAsset(gdaxTrade.getCurrencyPair().base.toString());
         aTrade.setExecutionTime(gdaxTrade.getTimestamp().toInstant());
         aTrade.setPrice(gdaxTrade.getPrice());
         aTrade.setQuantity(gdaxTrade.getTradableAmount());
-        aTrade.setSide(gdaxTrade.getType() == Order.OrderType.BID ? "SELL" : "BUY");
+        aTrade.setSide(gdaxTrade.getType() == Order.OrderType.BID ? "BUY" : "SELL");
 
         return aTrade;
     }
