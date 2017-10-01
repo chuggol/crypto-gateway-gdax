@@ -12,6 +12,7 @@ import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.gdax.GDAXStreamingExchange;
 import io.reactivex.disposables.Disposable;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -81,12 +82,15 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
 
     private Trade getDomainTrade(org.knowm.xchange.dto.marketdata.Trade gdaxTrade) {
         Trade aTrade = new Trade();
-        aTrade.setCurrencyPair(gdaxTrade.getCurrencyPair().toString());
         aTrade.setId(gdaxTrade.getId());
+        aTrade.setMarket("GDAX");
+        aTrade.setCurrencyTraded(gdaxTrade.getCurrencyPair().counter.toString());
+        aTrade.setCurrencyBase(gdaxTrade.getCurrencyPair().base.toString());
+        aTrade.setExecutionTime(gdaxTrade.getTimestamp().toInstant());
         aTrade.setPrice(gdaxTrade.getPrice());
         aTrade.setQuantity(gdaxTrade.getTradableAmount());
-        aTrade.setId(gdaxTrade.getId());
-        aTrade.setSide(gdaxTrade.getType().name());
+        aTrade.setSide(gdaxTrade.getType() == Order.OrderType.BID ? "SELL" : "BUY");
+
         return aTrade;
     }
 
