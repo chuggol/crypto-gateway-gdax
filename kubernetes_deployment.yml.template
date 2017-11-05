@@ -15,6 +15,10 @@ spec:
         app: crypto-gateway-gdax
         commit: ${WERCKER_GIT_COMMIT}
     spec:
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gateway-gdax-key
       containers:
       - name: crypto-gateway-gdax
         image: ${GCR_TAG}:${WERCKER_GIT_COMMIT}
