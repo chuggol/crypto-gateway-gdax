@@ -26,3 +26,9 @@ spec:
         - name: gdax-health
           containerPort: 8080
           protocol: TCP
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
