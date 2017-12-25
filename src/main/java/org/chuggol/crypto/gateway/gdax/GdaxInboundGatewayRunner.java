@@ -73,7 +73,7 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
     }
 
     private boolean isHealthy() {
-        return !tradeSubscription.isDisposed();
+        return !tradeSubscription.isDisposed() && exchange.isAlive();
     }
 
     private String toJson(Trade trade) {
