@@ -7,6 +7,7 @@ import com.google.gson.GsonBuilder;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
+import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.gdax.GDAXStreamingExchange;
@@ -32,7 +33,7 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
     private Publisher publisher;
 
     @Override
-    public void run(ApplicationArguments applicationArguments) throws Exception{
+    public void run(ApplicationArguments applicationArguments) throws Exception {
         connectAndStart();
         initWatchDog();
     }
@@ -43,7 +44,10 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
     }
 
     private void connectAndStart() throws IOException {
-        exchange.connect().blockingAwait();
+        ProductSubscription subscription = ProductSubscription.create()
+                .addTrades(CurrencyPair.BTC_USD)
+                .build();
+        exchange.connect(subscription).blockingAwait();
         TopicName topicName = TopicName.create("crypto-175617", "inbound-trades");
         publisher = Publisher.defaultBuilder(topicName).build();
 
@@ -88,7 +92,7 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
         aTrade.setTradedAsset(gdaxTrade.getCurrencyPair().base.toString());
         aTrade.setExecutionTime(gdaxTrade.getTimestamp().toInstant());
         aTrade.setPrice(gdaxTrade.getPrice());
-        aTrade.setQuantity(gdaxTrade.getTradableAmount());
+        aTrade.setQuantity(gdaxTrade.getOriginalAmount());
         aTrade.setSide(gdaxTrade.getType() == Order.OrderType.BID ? "BUY" : "SELL");
 
         return aTrade;
