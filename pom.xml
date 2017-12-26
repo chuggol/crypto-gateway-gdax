@@ -81,6 +81,12 @@
             <groupId>info.bitrich.xchange-stream</groupId>
             <artifactId>xchange-stream-core</artifactId>
             <version>${xchange-stream.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -119,6 +125,11 @@
             <groupId>info.bitrich.xchange-stream</groupId>
             <artifactId>xchange-gdax</artifactId>
             <version>${xchange-stream.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.16.Final</version>
         </dependency>
 
         <dependency>
