@@ -11,6 +11,7 @@ import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.gdax.GDAXStreamingExchange;
+import info.bitrich.xchangestream.service.netty.WebSocketClientHandler;
 import io.reactivex.disposables.Disposable;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -27,10 +28,11 @@ import java.util.concurrent.*;
 @Service
 public class GdaxInboundGatewayRunner implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(GdaxInboundGatewayRunner.class);
-    private final StreamingExchange exchange = StreamingExchangeFactory.INSTANCE.createExchange(GDAXStreamingExchange.class.getName());
+    private final GDAXStreamingExchange exchange = (GDAXStreamingExchange)StreamingExchangeFactory.INSTANCE.createExchange(GDAXStreamingExchange.class.getName());
     private Disposable tradeSubscription;
     private Gson gson = new GsonBuilder().create();
     private Publisher publisher;
+    private boolean isDisconnectedAlert = false;
 
     @Override
     public void run(ApplicationArguments applicationArguments) throws Exception {
@@ -74,10 +76,17 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
                     LOG.error("Error in subscribing trades.", throwable);
                 });
 
+        exchange.setChannelInactiveHandler(new WebSocketClientHandler.WebSocketMessageHandler() {
+            @Override
+            public void onMessage(String message) {
+                isDisconnectedAlert = true;
+            }
+        });
+
     }
 
     private boolean isHealthy() {
-        return !tradeSubscription.isDisposed() && exchange.isAlive();
+        return !tradeSubscription.isDisposed() && exchange.isAlive() && !isDisconnectedAlert;
     }
 
     private String toJson(Trade trade) {
