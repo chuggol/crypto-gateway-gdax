@@ -1,38 +1,37 @@
 package org.chuggol.crypto.gateway.gdax;
 
-import com.google.api.core.ApiFuture;
 import com.google.cloud.pubsub.v1.Publisher;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.TopicName;
 import info.bitrich.xchangestream.core.ProductSubscription;
-import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.gdax.GDAXStreamingExchange;
 import info.bitrich.xchangestream.service.netty.WebSocketClientHandler;
 import io.reactivex.disposables.Disposable;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class GdaxInboundGatewayRunner implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(GdaxInboundGatewayRunner.class);
     private final GDAXStreamingExchange exchange = (GDAXStreamingExchange)StreamingExchangeFactory.INSTANCE.createExchange(GDAXStreamingExchange.class.getName());
     private Disposable tradeSubscription;
-    private Gson gson = new GsonBuilder().create();
+
     private Publisher publisher;
     private boolean isDisconnectedAlert = false;
+    @Autowired
+    PubSubFactory pubSubFactory;
+    private TradeParser toLocalDomain = new TradeParser();
+    private TradeToJsonMarshaller toJson = new TradeToJsonMarshaller();
 
     @Override
     public void run(ApplicationArguments applicationArguments) throws Exception {
@@ -50,31 +49,17 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
                 .addTrades(CurrencyPair.BTC_USD)
                 .build();
         exchange.connect(subscription).blockingAwait();
-        TopicName topicName = TopicName.create("crypto-175617", "inbound-trades");
-        publisher = Publisher.defaultBuilder(topicName).build();
-
 
         tradeSubscription = exchange.getStreamingMarketDataService()
                 .getTrades(CurrencyPair.BTC_USD)
-                .subscribe(gdaxTrade -> {
-                    if (!"0".equals(gdaxTrade.getId())) {
-                        Trade trade = getDomainTrade(gdaxTrade);
-                        String tradeJson = toJson(trade);
-                        ByteString tradeData = ByteString.copyFromUtf8(tradeJson);
-                        PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(tradeData).build();
-                        LOG.info("Incoming gdaxTrade: {}", tradeJson);
-                        ApiFuture<String> future = publisher.publish(pubsubMessage);
-                        try {
-                            LOG.info("Published with id: {}", future.get());
-                        } catch (Exception ex) {
-                            LOG.error("Got exception: ", ex);
-                        }
-
-
-                    }
-                }, throwable -> {
-                    LOG.error("Error in subscribing trades.", throwable);
-                });
+                .map(toLocalDomain)
+                .map(toJson)
+                .map(message -> {
+                    LOG.info(message);
+                    return message;
+                })
+                .flatMap(pubSubFactory.outboundTradesObserver())
+                .subscribe();
 
         exchange.setChannelInactiveHandler(new WebSocketClientHandler.WebSocketMessageHandler() {
             @Override
@@ -89,23 +74,7 @@ public class GdaxInboundGatewayRunner implements ApplicationRunner {
         return !tradeSubscription.isDisposed() && exchange.isAlive() && !isDisconnectedAlert;
     }
 
-    private String toJson(Trade trade) {
-        return gson.toJson(trade);
-    }
 
-    private Trade getDomainTrade(org.knowm.xchange.dto.marketdata.Trade gdaxTrade) {
-        Trade aTrade = new Trade();
-        aTrade.setId(gdaxTrade.getId());
-        aTrade.setMarket("GDAX");
-        aTrade.setCurrency(gdaxTrade.getCurrencyPair().counter.toString());
-        aTrade.setTradedAsset(gdaxTrade.getCurrencyPair().base.toString());
-        aTrade.setExecutionTime(gdaxTrade.getTimestamp().toInstant());
-        aTrade.setPrice(gdaxTrade.getPrice());
-        aTrade.setQuantity(gdaxTrade.getOriginalAmount());
-        aTrade.setSide(gdaxTrade.getType() == Order.OrderType.BID ? "BUY" : "SELL");
-
-        return aTrade;
-    }
 
     @PreDestroy
     public void cleanupBeforeExit() throws Exception {

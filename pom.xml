@@ -118,7 +118,12 @@
             <artifactId>google-cloud-pubsub</artifactId>
             <version>0.22.0-beta</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.18</version>
+            <scope>provided</scope>
+        </dependency>
 
 
         <dependency>
